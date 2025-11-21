@@ -76,7 +76,7 @@ html, body, [class*="css"] {
 
 /* Result sections */
 .result-box {
-    background: #ffffff;
+    background: #1c2530;
     border: 1px solid #d6d9dd;
     padding: 1.3rem 1.4rem;
     border-radius: 8px;
@@ -313,3 +313,4 @@ st.markdown("""
     CSC415/CSC331 AI Project 2 | Developed with Streamlit and OpenAI API
 </div>
 """, unsafe_allow_html=True)
+
