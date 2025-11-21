@@ -1,0 +1,38 @@
+=========================================================
+LLM Question & Answer System - Hosted Web GUI Link
+CSC415/CSC331 - Artificial Intelligence - Project 2
+=========================================================
+
+Student Name: 	Adesola Aderewa
+
+Matric Number: 22CG031811
+
+Submission Date: Friday, 21 November 2025
+
+=========================================================
+DEPLOYMENT INFORMATION
+=========================================================
+
+Live Web Application URL:https://aderewa-nlp-question-and-answering-system-22cg031811.streamlit.app/
+
+=========================================================
+GITHUB REPOSITORY
+=========================================================
+
+GitHub Repository URL:
+https://aderewa03.github.io/NLP-Question-and-Answering-System-Using-an-LLM-API/
+
+Example: https://github.com/johndoe23/LLM_QA_Project_JohnDoe_CSC12345
+
+Repository Branch: main
+
+=========================================================
+PROJECT FILES
+=========================================================
+
+Main Files Included:
+1. LLM_QA_CLI.py - Command Line Interface
+2. app.py - Streamlit Web Application
+3. requirements.txt - Python Dependencies
+4. README.md - Documentation
+5. LLM_QA_hosted_webGUI_link.txt - This file===========
