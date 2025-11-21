@@ -4,159 +4,170 @@ import string
 from openai import OpenAI
 import time
 
-# ============= PROMPT TEMPLATES =============
+# -------------------------------
+#   Prompt Templates
+#   These templates shape how the LLM responds.
+# -------------------------------
 
-SYSTEM_PROMPT = """You are a helpful assistant. Provide concise answers and cite sources when possible."""
+SYSTEM_PROMPT = """You are an AI assistant that provides concise, factual answers with optional citations."""
 
 USER_PROMPT_BASIC = "{processed_question}"
 
-USER_PROMPT_ENHANCED = """Please answer the following question concisely:
+USER_PROMPT_ENHANCED = """
+Please answer the following question concisely:
 
 Question: {processed_question}
 
-Provide a clear, factual answer. If applicable, cite reliable sources."""
+Provide a clear and factual explanation. Cite credible sources when relevant.
+"""
 
-# ============================================
+# -------------------------------
+#   Streamlit Page Configuration
+# -------------------------------
 
-# Page configuration
 st.set_page_config(
     page_title="LLM Q&A System",
-    page_icon="🤖",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for styling
+# -------------------------------
+#   Custom CSS (Fully Rewritten)
+#   Layout redesigned: neutral tones, framed sections, clean typography
+# -------------------------------
+
 st.markdown("""
 <style>
-    /* Import Google Font */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-    
-    /* Main container */
-    .main {
-        background-color: #F9FAFB;
-    }
-    
-    /* Header styling */
-    .header-container {
-        background: linear-gradient(135deg, #4F46E5 0%, #8B5CF6 100%);
-        padding: 2rem;
-        border-radius: 12px;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-    
-    .header-title {
-        font-family: 'Inter', sans-serif;
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: white;
-        margin: 0;
-        text-align: center;
-    }
-    
-    .header-subtitle {
-        font-family: 'Inter', sans-serif;
-        font-size: 1.1rem;
-        color: #E0E7FF;
-        text-align: center;
-        margin-top: 0.5rem;
-    }
-    
-    /* Result card styling */
-    .result-card {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 10px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        margin: 1rem 0;
-        border-left: 4px solid #4F46E5;
-    }
-    
-    .result-label {
-        font-family: 'Inter', sans-serif;
-        font-weight: 600;
-        color: #4F46E5;
-        font-size: 0.9rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 0.5rem;
-    }
-    
-    .result-text {
-        color: #1F2937;
-        font-size: 1rem;
-        line-height: 1.6;
-    }
-    
-    /* Button styling */
-    .stButton>button {
-        background: linear-gradient(135deg, #4F46E5 0%, #8B5CF6 100%);
-        color: white;
-        font-weight: 600;
-        border: none;
-        border-radius: 8px;
-        padding: 0.6rem 2rem;
-        font-size: 1rem;
-        transition: transform 0.2s, box-shadow 0.2s;
-    }
-    
-    .stButton>button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(79, 70, 229, 0.3);
-    }
-    
-    /* History item */
-    .history-item {
-        background: #F3F4F6;
-        padding: 1rem;
-        border-radius: 8px;
-        margin-bottom: 0.8rem;
-        border-left: 3px solid #8B5CF6;
-    }
+
+/* Base font import */
+@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600&display=swap');
+
+html, body, [class*="css"] {
+    font-family: 'Rubik', sans-serif;
+}
+
+/* Container background */
+.main {
+    background-color: #f5f6f7;
+}
+
+/* Header panel styling */
+.custom-header {
+    background: #1c2530;
+    padding: 2.4rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+    color: #ffffff;
+    text-align: center;
+}
+
+.custom-header h1 {
+    margin: 0;
+    font-weight: 600;
+    font-size: 2.3rem;
+}
+
+.custom-header p {
+    margin-top: 0.4rem;
+    font-size: 1.05rem;
+    opacity: 0.85;
+}
+
+/* Result sections */
+.result-box {
+    background: #ffffff;
+    border: 1px solid #d6d9dd;
+    padding: 1.3rem 1.4rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.result-title {
+    font-weight: 600;
+    color: #2f3c4a;
+    font-size: 0.95rem;
+    margin-bottom: 0.4rem;
+}
+
+/* Button styling */
+.stButton>button {
+    background-color: #1c2530;
+    color: #ffffff;
+    padding: 0.55rem 2rem;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+
+.stButton>button:hover {
+    background-color: #2b3948;
+}
+
+/* Sidebar history item */
+.history-entry {
+    background-color: #eef0f2;
+    border-left: 4px solid #1c2530;
+    padding: 0.9rem;
+    border-radius: 6px;
+    margin-bottom: 0.7rem;
+}
+
+/* Remove default expander border */
+.streamlit-expanderHeader {
+    font-weight: 500;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
+# -------------------------------
+#   Question Preprocessing
+# -------------------------------
+
 def preprocess_question(question: str) -> str:
     """
-    Preprocess the input question:
-    - Convert to lowercase
-    - Tokenize by whitespace
-    - Remove punctuation
+    Prepare the user's question for the prompt by:
+    - Lowercasing text
+    - Removing punctuation
+    - Tokenizing and recombining
     """
-    question_lower = question.lower()
-    translator = str.maketrans('', '', string.punctuation)
-    question_no_punct = question_lower.translate(translator)
-    tokens = question_no_punct.split()
-    processed = ' '.join(tokens)
-    return processed
+    lowered = question.lower()
+    no_punct = lowered.translate(str.maketrans('', '', string.punctuation))
+    tokens = no_punct.split()
+    return " ".join(tokens)
+
+# -------------------------------
+#   Prompt Builder
+# -------------------------------
 
 def build_prompt(processed_question: str, use_enhanced: bool = False) -> list:
     """
-    Build the prompt messages for the LLM API using templates.
+    Construct the list of messages used by the LLM API call.
     """
-    if use_enhanced:
-        user_content = USER_PROMPT_ENHANCED.format(processed_question=processed_question)
-    else:
-        user_content = USER_PROMPT_BASIC.format(processed_question=processed_question)
-    
-    messages = [
+    user_content = USER_PROMPT_ENHANCED.format(processed_question=processed_question) if use_enhanced else USER_PROMPT_BASIC.format(processed_question=processed_question)
+
+    return [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": user_content}
     ]
-    return messages
+
+# -------------------------------
+#   LLM API Interaction
+# -------------------------------
 
 def call_llm_api(messages: list, use_mock: bool = False) -> str:
     """
-    Send prompt to OpenAI API and return response.
+    Communicate with the OpenAI model or fallback mock mode.
     """
     if use_mock:
         return mock_llm_response(messages[-1]["content"])
-    
+
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        return "⚠️ Error: OPENAI_API_KEY not found. Please set it in Streamlit secrets or environment variables."
-    
+        return "Error: API key not found. Add OPENAI_API_KEY to your environment."
+
     try:
         client = OpenAI(api_key=api_key)
         response = client.chat.completions.create(
@@ -164,127 +175,141 @@ def call_llm_api(messages: list, use_mock: bool = False) -> str:
             messages=messages,
             max_tokens=200,
             temperature=0.7,
-            timeout=30.0
+            timeout=30
         )
-        answer = response.choices[0].message.content.strip()
-        return answer
+        return response.choices[0].message.content.strip()
     except Exception as e:
-        if "timeout" in str(e).lower():
-            return "⚠️ Error: Request timed out. Please try again."
-        elif "rate_limit" in str(e).lower():
-            return "⚠️ Error: Rate limit exceeded. Please wait and try again."
-        elif "authentication" in str(e).lower():
-            return "⚠️ Error: Invalid API key."
-        else:
-            return f"⚠️ Error: {str(e)}"
+        error_message = str(e).lower()
+        if "timeout" in error_message:
+            return "Error: Request timed out."
+        if "rate_limit" in error_message:
+            return "Error: Rate limit exceeded."
+        if "authentication" in error_message:
+            return "Error: Invalid API key."
+        return f"Error: {str(e)}"
+
+# -------------------------------
+#   Mock Response Generator
+# -------------------------------
 
 def mock_llm_response(question: str) -> str:
     """
-    Fallback mock function for offline testing.
+    Provide predictable test responses without API calls.
     """
-    question_lower = question.lower()
-    
-    if "capital" in question_lower or "city" in question_lower:
-        return "Mock Response: The capital varies by country. For example, the capital of France is Paris."
-    elif "python" in question_lower or "code" in question_lower:
-        return "Mock Response: Python is a high-level programming language known for readability and versatility."
-    elif "weather" in question_lower or "temperature" in question_lower:
-        return "Mock Response: I cannot access real-time weather data. Please check a weather service."
-    else:
-        return f"Mock Response: This is a simulated answer to your question."
+    q = question.lower()
+    if "capital" in q or "city" in q:
+        return "Mock Response: Example – the capital of France is Paris."
+    if "python" in q:
+        return "Mock Response: Python is a general-purpose programming language."
+    if "weather" in q:
+        return "Mock Response: Weather information is unavailable offline."
+    return "Mock Response: Simulated output."
 
-# Initialize session state for history
-if 'history' not in st.session_state:
+# -------------------------------
+#   Session History Initialization
+# -------------------------------
+
+if "history" not in st.session_state:
     st.session_state.history = []
 
-if 'use_mock' not in st.session_state:
+if "use_mock" not in st.session_state:
     st.session_state.use_mock = os.getenv("USE_MOCK", "false").lower() == "true"
 
-# Header
+# -------------------------------
+#   Header Section
+# -------------------------------
+
 st.markdown("""
-<div class="header-container">
-    <h1 class="header-title">🤖 LLM Q&A System</h1>
-    <p class="header-subtitle">Ask any question and get AI-powered answers instantly</p>
+<div class="custom-header">
+    <h1>LLM Q&A System</h1>
+    <p>Submit a question and receive an instant AI-generated explanation.</p>
 </div>
 """, unsafe_allow_html=True)
 
-# Main content area
-col1, col2 = st.columns([2, 1])
+# -------------------------------
+#   Main Layout
+# -------------------------------
 
-with col1:
-    st.subheader("Ask Your Question")
-    
-    # Question input
+col_left, col_right = st.columns([2, 1])
+
+with col_left:
+    st.subheader("Enter Your Question")
+
     user_question = st.text_area(
-        "Type your question here:",
-        height=100,
-        placeholder="e.g., What is machine learning?",
+        "Question Input",
+        height=110,
+        placeholder="Example: What is machine learning?",
         label_visibility="collapsed"
     )
-    
-    # Send button
-    if st.button("🚀 Get Answer", use_container_width=True):
+
+    if st.button("Get Answer", use_container_width=True):
+
         if user_question.strip():
-            with st.spinner("Processing your question..."):
-                # Preprocess
+
+            with st.spinner("Processing your request..."):
                 processed = preprocess_question(user_question)
-                
-                # Build prompt
                 messages = build_prompt(processed)
-                
-                # Get answer
                 answer = call_llm_api(messages, use_mock=st.session_state.use_mock)
-                
-                # Add to history (keep last 5)
+
                 st.session_state.history.insert(0, {
                     "question": user_question,
                     "processed": processed,
                     "answer": answer,
                     "timestamp": time.strftime("%H:%M:%S")
                 })
+
                 if len(st.session_state.history) > 5:
                     st.session_state.history.pop()
-            
-            # Display results
-            st.markdown("---")
-            st.markdown(f'<div class="result-card"><div class="result-label">Processed Question</div><div class="result-text">{processed}</div></div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="result-card"><div class="result-label">Answer</div><div class="result-text">{answer}</div></div>', unsafe_allow_html=True)
-            
-            # Copy button
-            st.button("📋 Copy Answer", on_click=lambda: st.write("Answer copied!"))
-        else:
-            st.warning("⚠️ Please enter a question.")
 
-# Sidebar - History
+            st.markdown("---")
+
+            st.markdown(f"""
+            <div class="result-box">
+                <div class="result-title">Processed Question</div>
+                {processed}
+            </div>
+
+            <div class="result-box">
+                <div class="result-title">Answer</div>
+                {answer}
+            </div>
+            """, unsafe_allow_html=True)
+
+            st.button("Copy Answer", on_click=lambda: st.write("Answer copied."))
+        else:
+            st.warning("Please enter a question before submitting.")
+
+# -------------------------------
+#   Sidebar — History
+# -------------------------------
+
 with st.sidebar:
-    st.header("📜 Recent Questions")
-    
-    # Mock mode toggle
-    if st.checkbox("Use Mock Mode (No API Key)", value=st.session_state.use_mock):
-        st.session_state.use_mock = True
-        st.info("🔄 Using simulated responses")
-    else:
-        st.session_state.use_mock = False
-    
+    st.header("Recent Questions")
+
+    mock_toggle = st.checkbox("Enable Mock Mode", value=st.session_state.use_mock)
+    st.session_state.use_mock = mock_toggle
+
     st.markdown("---")
-    
+
     if st.session_state.history:
         for idx, item in enumerate(st.session_state.history):
-            with st.expander(f"Q{idx+1}: {item['question'][:40]}... ({item['timestamp']})"):
+            with st.expander(f"Q{idx+1}: {item['question'][:45]} ({item['timestamp']})"):
                 st.markdown(f"**Processed:** {item['processed']}")
                 st.markdown(f"**Answer:** {item['answer']}")
     else:
-        st.info("No questions asked yet. Start by asking something!")
-    
-    # Clear history button
-    if st.button("🗑️ Clear History"):
+        st.info("No previous questions available.")
+
+    if st.button("Clear History"):
         st.session_state.history = []
         st.rerun()
 
-# Footer
+# -------------------------------
+#   Footer
+# -------------------------------
+
 st.markdown("---")
 st.markdown("""
-<div style='text-align: center; color: #6B7280; font-size: 0.9rem;'>
-    CSC415/CSC331 AI Project 2 | Built with Streamlit & OpenAI
+<div style="text-align: center; color: #7a8087; font-size: 0.9rem;">
+    CSC415/CSC331 AI Project 2 | Developed with Streamlit and OpenAI API
 </div>
 """, unsafe_allow_html=True)
