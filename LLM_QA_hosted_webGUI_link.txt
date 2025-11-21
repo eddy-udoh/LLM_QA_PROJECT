@@ -15,6 +15,7 @@ https://github.com/eddy-udoh/LLM_QA_PROJECT.git
 
 
 Active Branch: main
+https://llm-project-22cg031868.streamlit.app/
 
 PROJECT OUTLINE
 
@@ -24,4 +25,5 @@ Included Files:
 - requirements.txt         (Dependency List)
 - README.md                (Documentation)
 - LLM_QA_hosted_webGUI_link.txt  (Deployment Link File)
+
 
